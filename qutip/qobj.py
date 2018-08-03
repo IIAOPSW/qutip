@@ -40,6 +40,7 @@ __all__ = ['Qobj', 'qobj_list_evaluate', 'ptrace', 'dag', 'isequal',
 
 import warnings
 import types
+import numbers
 
 try:
     import builtins
@@ -700,6 +701,12 @@ class Qobj(object):
     def __abs__(self):
         return abs(self.data)
 
+    def __or__(self,other):
+        return tensor.tensor(self,other)
+
+    def __invert__(self):
+        return self.dag()
+
     def __str__(self):
         s = ""
         t = self.type
@@ -749,6 +756,9 @@ class Qobj(object):
         or by vectorization and devectorization, as
         appropriate.
         """
+        if isinstance(other, numbers.Number):
+            return self # lets Qobj act like a td_qobj! yay
+        
         if not isinstance(other, Qobj):
             raise TypeError("Only defined for quantum objects.")
 
@@ -2369,6 +2379,7 @@ def isherm(Q):
 
     """
     return True if isinstance(Q, Qobj) and Q.isherm else False
+
 
 
 # TRAILING IMPORTS
