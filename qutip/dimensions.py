@@ -380,3 +380,102 @@ def dims_idxs_to_tensor_idxs(dims, indices):
 
     perm = dims_to_tensor_perm(dims)
     return deep_map(partial(getitem, perm), indices)
+
+def pretensor_idx_to_tensor_idx(pretensor, dims):
+    """
+    Given the dimensions of subsystems in a tensor product and an index
+    in each subspace, returns the overall index in the tensored space. 
+
+    Parameters
+    ----------
+
+    pretensor : list
+        The index of the state of each sub system
+        
+    dims : list
+        Dimensions specification. For a ket this is dims[0]. For a bra this
+        is dims[1]. For everything else flatten(dims)
+
+
+    Returns
+    -------
+
+    flat_idx : int
+        Overall index of the tensored system. In the case of qubits this
+        happens to convert binary numbers to base 10.
+
+        Eg
+        > pretensor_idx_to_tensor_idx([1, 1, 0, 1, 0], [2, 2, 2, 2, 2])
+        > 26
+
+        conversely given a ket with just a single entry at row 26,
+        one could cast this as a system of qubits to obtain something
+        equivlent to
+        
+        > dn = basis(2)
+        > up = sigmax()*dn
+        > psi = tensor(up, up, dn, up, dn)
+    
+    """
+    dims = flatten(dims) # ?
+    pretensor = flatten(pretensor) # ?
+
+    #sanity check
+    if len(pretensor) != len(dims):
+        raise Exception("pre-tensor idxs not in correct space for this flattening")
+    
+    flat_idx = 0
+    for k in range(len(dims)):
+        if pretensor[k] > dims[k]:
+            raise Exception("pre-tensor idxs not in correct space for this flattening")
+        flat_idx *= dims[k]
+        flat_idx += pretensor[k]
+
+    return flat_idx
+
+def tensor_idx_to_pretensor_idx(tensor_idx, dims):
+    """
+    Given an index and the dimensions of the subsystems of a tensor product,
+    returns a list of indicies in each subsystem
+
+    Parameters
+    ----------
+
+    tensor_idx : int
+        The flat index of the data in your tensored system
+        
+    dims : list
+        Dimensions specification. For a ket this is dims[0]. For a bra this
+        is dims[1]. For everything else flatten(dims)
+
+
+    Returns
+    -------
+
+    pretensor_idx : list
+        List of tensor_idx in each subsystem. In the case of qubits this
+        happens to convert base 10 numbers to binary.
+
+        Eg
+        > tensor_idx_to_pretensor_idx(26, [2, 2, 2, 2, 2])
+        > [1, 1, 0, 1, 0]
+
+        conversely given
+        > dn = basis(2)
+        > up = sigmax()*dn
+        > psi = tensor(up, up, dn, up, dn)
+
+        One would find the only entry in psi is at row 26. 
+        
+    """
+    dims = flatten(dims) # ? 
+    adj_dim = 1
+    bstate = np.zeros(len(dims), dtype = "int")
+    for k in range(len(dims)-1,-1,-1):
+        bstate[k] = (tensor_idx//adj_dim) % dims[k]
+        adj_dim *= dims[k]
+        
+    if adj_dim <= tensor_idx :
+        raise Exception("flat index out of range of total states in Hilbert space")
+
+    return bstate

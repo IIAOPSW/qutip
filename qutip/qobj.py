@@ -63,11 +63,13 @@ from qutip.cy.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
-from qutip.dimensions import type_from_dims, enumerate_flat, collapse_dims_super
+from qutip.dimensions import (type_from_dims, enumerate_flat, collapse_dims_super,
+                              tensor_idx_to_pretensor_idx)
 from qutip.cy.spmath import (zcsr_transpose, zcsr_adjoint, zcsr_isherm,
                             zcsr_trace, zcsr_proj, zcsr_inner)
 from qutip.cy.spmatfuncs import zcsr_mat_elem
 from qutip.cy.sparse_utils import cy_tidyup
+from bisect import bisect_left
 import sys
 if sys.version_info.major >= 3:
     from itertools import zip_longest
@@ -702,6 +704,8 @@ class Qobj(object):
         return abs(self.data)
 
     def __or__(self,other):
+        if isinstance(other,int):
+            return tensor.tensor([self]*other)
         return tensor.tensor(self,other)
 
     def __invert__(self):
@@ -1806,7 +1810,40 @@ class Qobj(object):
         """
         return mts.dnorm(self, B)
 
+    def sample(self): 
+        '''
+        Chooses one basis state at random based on the amplitude, exactly like a
+        destructive measure.
 
+        Returns
+        -------
+        basis_state : tuple
+            A tuple representing the basis state selected.
+            For example (1,0,0,1) = |1,0,0,1>
+        
+        '''
+        # insert sanity test. can't sample non-state
+
+        refdim = self.dims[0]
+        if self.type == 'oper':
+            # Mixed state case
+            prob = self.diag()
+            bstate_as_idx = np.random.choice(len(prob), 1, p = prob)[0]
+        else:
+            # <bra| or |ket> case
+            prob = self.data.data*self.data.data.conjugate() # square the amps
+            selection = np.random.choice(self.data.nnz, 1, p = prob.real)[0]
+            # Use the data (amplitudes) squared as a probability distribution
+            # to select some entry in the csr
+            if self.type == 'bra':
+                bstate_as_idx = state.data.indices[selection]
+                refdim = self.dims[1]
+            else:
+                bstate_as_idx = bisect_left(self.data.indptr, selection + 1) - 1
+            # Finally we must convert from an index to a basis state
+        return tuple(tensor_idx_to_pretensor_idx(bstate_as_idx, refdim))
+        
+    
     @property
     def ishp(self):
         # FIXME: this needs to be cached in the same ways as isherm.

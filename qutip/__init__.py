@@ -171,6 +171,8 @@ else:
 from qutip.qobj import *
 from qutip.states import *
 from qutip.operators import *
+from qutip.operator_mappings import *
+from qutip.destructive_measure import *
 from qutip.expect import *
 from qutip.tensor import *
 from qutip.superoperator import *
