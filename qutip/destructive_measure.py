@@ -54,17 +54,21 @@ def post_select(state,subspace,outcome):
         finalproj = tensor(totens)
         if state.type == 'bra':
             fs = state * finalproj
-        else:
+        elif state.type == 'ket':
             fs = finalproj * state
+        else:
+            fs = finalproj * state * finalproj
     else:
         if outcome.type != 'oper':
             outcome = outcome.proj()
         if state.type == 'bra':
-            fs = ~mul_into(~outcome, ~state, subspace)
+            fs = mul_into(outcome, state, subspace, True)
         else:
             fs = mul_into(outcome, state, subspace)
+            if state.type != 'ket':
+                fs = mul_into(outcome, fs, subspace, True)
+                # there must be a better way. left mul into?
     # Now have final state
-
     renorm = fs.norm()
 
     if renorm == 0:

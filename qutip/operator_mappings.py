@@ -5,7 +5,7 @@ from qutip.tensor import tensor
 
 __all__ = ["mul_into","ctrl","U2H","H2U"]
 
-def mul_into(A,B,subspace):
+def mul_into(A,B,subspace,left_mult = False):
     '''
     Multiply A into a subspace of B
 
@@ -35,29 +35,38 @@ def mul_into(A,B,subspace):
         / \                    / \           |     |           
     4--^   ^------------------^   ^----------|_____|--
     
-    
+
+    Optional arg left_mult flips the order such that A left multiplies B
     '''
     # note: cython this at some point
-    # zeroth one should test for obvious dim mismatch
-    # first one should do obvious case tests
+    # one should test for obvious dim mismatch
+    # one should also do obvious case tests
+    # one has not done these things
+    # one is too busy refering to themselves in third person
 
     # subspace is continuous. is ordered. subspace is entire space. etc
     
     # obvious testing done. now we must do the operation for real
-
+    dim = B.dims[0]
     ops = [A]
-    for k in range(len(B.dims[0])):
+    if left_mult:
+        dim = B.dims[1]
+    
+    for k in range(len(dim)):
         if k not in subspace:
-            ops.append(qeye(B.dims[0][k]))
+            ops.append(qeye(dim[k]))
     big_A = tensor(ops) # does this work like I think?
 
     # now permute big_A and we are done.
-    rearr = np.arange(len(B.dims[0]))
+    rearr = np.arange(len(dim))
     for k in range(len(subspace)):
         rearr[subspace[k]] = k
         rearr[k] = subspace[k]
-    
-    return big_A.permute(rearr)*B
+
+    if left_mult:
+        return B * big_A.permute(rearr)
+    else:
+        return big_A.permute(rearr) * B
     
 
     
@@ -113,7 +122,7 @@ def ctrl(U):
     '''
     #should I be doing something special for super operators? 
     if U.shape[0] != U.shape[1]:
-        raise "There's no such thing as a controlled ket"
+        raise Exception("There's no such thing as a controlled ket")
     size_inc = U.shape[0] # add this many 1s to the diagonal
     newdat = np.append(np.zeros([size_inc],dtype="int32")+1,U.data.data)
     newindc = np.append(np.arange(size_inc,dtype="int32"),U.data.indices + size_inc)
