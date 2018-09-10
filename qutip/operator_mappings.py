@@ -120,6 +120,8 @@ def ctrl(U):
     ---U---      ---U---
 
     '''
+    if isinstance(U,Pobj):
+        return U.ctrl()
     #should I be doing something special for super operators? 
     if U.shape[0] != U.shape[1]:
         raise Exception("There's no such thing as a controlled ket")

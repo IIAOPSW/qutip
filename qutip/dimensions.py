@@ -413,7 +413,7 @@ def pretensor_idx_to_tensor_idx(pretensor, dims):
         equivlent to
         
         > dn = basis(2)
-        > up = sigmax()*dn
+        > up = basis(2,1)
         > psi = tensor(up, up, dn, up, dn)
     
     """
